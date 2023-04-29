@@ -1,30 +1,44 @@
 import uvicorn
 from fastapi import FastAPI
 from fastapi.responses import PlainTextResponse
+from contextlib import asynccontextmanager
 import aiohttp
 import arrow
 import chess.pgn
 from io import StringIO
 from selenium import webdriver
-from selenium.webdriver.chrome.service import Service as ChromeService
+from selenium.webdriver.chrome.options import Options
 from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.chrome.service import Service as ChromeService
 from selenium.webdriver.common.by import By
-
-app = FastAPI()
-service = ChromeService(executable_path=ChromeDriverManager().install())
 
 SCRAPER_URL = "https://tcec-chess.com/"
 JSON_URL = "https://tcec-chess.com/live.json"
 PGN_URL = "https://tcec-chess.com/live.pgn"
 TIMEZONE = "America/New_York"
 
+service = ChromeService(executable_path=ChromeDriverManager().install())
+chrome_options = Options()
+chrome_options.headless = True
+lifespan_stuff = {}
+
+
+@asynccontextmanager
+async def api_lifespan(_: FastAPI):
+    global lifespan_stuff
+    lifespan_stuff["lifespan_stuff"] = webdriver.Chrome(service=service,
+                                                        options=chrome_options)
+    lifespan_stuff["lifespan_stuff"].implicitly_wait(10)
+    lifespan_stuff["lifespan_stuff"].get(SCRAPER_URL)
+    yield
+    lifespan_stuff["lifespan_stuff"].quit()
+
+
+app = FastAPI(lifespan=api_lifespan)
+
 
 @app.get("/metadata")
 async def route_metadata():
-    driver = webdriver.Chrome(service=service)
-    driver.implicitly_wait(10)
-    driver.get(SCRAPER_URL)
-
     async with aiohttp.ClientSession() as session:
         async with session.get(JSON_URL) as response:
             metadata = await response.json()
@@ -36,7 +50,9 @@ async def route_metadata():
     time_control = int(headers["TimeControl"].split("+")[0])
     time_bonus = int(headers["TimeControl"].split("+")[1])
 
-    get_ele = lambda id: driver.find_element(by=By.ID, value=id)
+    def get_ele(ele_id):
+        return lifespan_stuff["lifespan_stuff"].find_element(by=By.ID,
+                                                             value=ele_id)
 
     wanted = {
         "event": {
@@ -73,8 +89,6 @@ async def route_metadata():
                 arrow.get(time_bonus).format("m:ss"))
         },
     }
-
-    driver.quit()
 
     return wanted
 
