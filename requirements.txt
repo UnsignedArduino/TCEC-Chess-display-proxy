@@ -4,3 +4,5 @@ aiohttp
 aiodns
 arrow
 chess
+selenium
+webdriver-manager
