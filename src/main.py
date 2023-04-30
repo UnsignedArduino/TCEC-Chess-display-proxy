@@ -82,8 +82,8 @@ async def route_metadata_json():
         wanted["white"] |= {
             "eval": last_white_move["wv"],
             "depth": last_white_move["d"] + "/" + last_white_move["sd"],
-            "speed": si_format(int(last_white_move["s"])),
-            "nodes": si_format(int(last_white_move["n"])) + "n/s",
+            "speed": si_format(int(last_white_move["s"])) + "n/s",
+            "nodes": si_format(int(last_white_move["n"])),
             "move_time": arrow.get(
                 int(last_white_move["mt"]) / 1000
             ).format("m:ss"),
@@ -96,8 +96,8 @@ async def route_metadata_json():
         wanted["black"] |= {
             "eval": last_black_move["wv"],
             "depth": last_black_move["d"] + "/" + last_black_move["sd"],
-            "speed": si_format(int(last_black_move["s"])),
-            "nodes": si_format(int(last_black_move["n"])) + "n/s",
+            "speed": si_format(int(last_black_move["s"])) + "n/s",
+            "nodes": si_format(int(last_black_move["n"])),
             "move_time": arrow.get(
                 int(last_black_move["mt"]) / 1000
             ).format("m:ss"),
