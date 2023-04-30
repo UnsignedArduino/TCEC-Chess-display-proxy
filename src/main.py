@@ -129,25 +129,28 @@ async def get_board_image() -> Image:
         async with session.get(JSON_URL) as response:
             metadata = await response.json()
 
-    moves = metadata["Moves"]
-    arrows = []
-    if len(moves) > 0 and "pv" in moves[-1] and \
-            len(moves[-1]["pv"]["Moves"]) > 1:
-        next_move = moves[-1]["pv"]["Moves"][1]
-        arrows.append(
-            chess.svg.Arrow(
-                chess.parse_square(next_move["from"]),
-                chess.parse_square(next_move["to"]),
-                color=PONDER_ARROW_COLOR
-            )
-        )
-
     game = chess.pgn.read_game(StringIO(pgn))
     board = game.board()
     last_move = None
     for move in game.mainline_moves():
         board.push(move)
         last_move = move
+
+    ponder = metadata["Moves"]
+    arrows = []
+    if len(ponder) > 0 and "pv" in ponder[-1] and \
+            len(ponder[-1]["pv"]["Moves"]) > 1:
+        next_move = ponder[-1]["pv"]["Moves"][1]
+        move = chess.Move(chess.parse_square(next_move["from"]),
+                          chess.parse_square(next_move["to"]))
+        if move != last_move:
+            arrows.append(
+                chess.svg.Arrow(
+                    move.from_square,
+                    move.to_square,
+                    color=PONDER_ARROW_COLOR
+                )
+            )
 
     svg_buf = BytesIO()
     svg_buf.write(chess.svg.board(board,
