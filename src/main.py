@@ -57,12 +57,14 @@ async def route_metadata_json():
         "white": {
             "name": headers["White"].split(" ")[0],
             "version": headers["White"].split(" ")[1],
-            "elo": headers["WhiteElo"]
+            "elo": headers["WhiteElo"],
+            "book": last_white_move["book"] if last_white_move is not None else None
         },
         "black": {
             "name": headers["Black"].split(" ")[0],
             "version": headers["Black"].split(" ")[1],
-            "elo": headers["BlackElo"]
+            "elo": headers["BlackElo"],
+            "book": last_black_move["book"] if last_black_move is not None else None
         },
         "game": {
             "start_absolute": start_time.format("HH:mm:ss MM/DD/YYYY"),
@@ -76,7 +78,7 @@ async def route_metadata_json():
         },
     }
 
-    if last_white_move is not None:
+    if last_white_move is not None and not last_white_move["book"]:
         wanted["white"] |= {
             "eval": last_white_move["wv"],
             "depth": last_white_move["d"] + "/" + last_white_move["sd"],
@@ -90,7 +92,7 @@ async def route_metadata_json():
             ).format("H:mm:ss")
         }
 
-    if last_black_move is not None:
+    if last_black_move is not None and not last_black_move["book"]:
         wanted["black"] |= {
             "eval": last_black_move["wv"],
             "depth": last_black_move["d"] + "/" + last_black_move["sd"],
