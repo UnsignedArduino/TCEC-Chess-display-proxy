@@ -1,7 +1,11 @@
-fastapi
-uvicorn[standard]
-aiohttp
+fastapi~=0.95.1
+uvicorn[standard]~=0.22.0
+aiohttp~=3.8.4
 aiodns
-arrow
-chess
+arrow~=1.2.3
+chess~=1.9.4
 si-prefix
+svglib~=1.5.1
+reportlab~=3.6.13
+pymupdf
+pillow

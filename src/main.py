@@ -1,11 +1,16 @@
 import uvicorn
 from fastapi import FastAPI
-from fastapi.responses import PlainTextResponse
+from fastapi.responses import Response, PlainTextResponse
 import aiohttp
 import arrow
 import chess.pgn
-from io import StringIO
+import chess.svg
+from io import StringIO, BytesIO
 from si_prefix import si_format
+from svglib.svglib import svg2rlg
+from reportlab.graphics import renderPDF
+import fitz
+from PIL import Image
 
 JSON_URL = "https://tcec-chess.com/live.json"
 PGN_URL = "https://tcec-chess.com/live.pgn"
@@ -113,6 +118,55 @@ async def route_moves():
                                         comments=False, variations=False)
 
     return game.accept(exporter)
+
+
+def pgn_to_pil_image(pgn: str) -> Image:
+    game = chess.pgn.read_game(StringIO(pgn))
+    board = game.board()
+    for move in game.mainline_moves():
+        board.push(move)
+
+    svg_buf = BytesIO()
+    svg_buf.write(chess.svg.board(board).encode("utf-8"))
+    svg_buf.seek(0)
+    drawing = svg2rlg(svg_buf)
+    pdf = renderPDF.drawToString(drawing)
+    doc = fitz.Document(stream=pdf)
+    pix = doc.load_page(0).get_pixmap(alpha=True, dpi=300)
+    png_bytes = BytesIO()
+    png_bytes.write(pix.tobytes(output="png"))
+    png_bytes.seek(0)
+    return Image.open(png_bytes)
+
+
+@app.get("/image.png")
+async def route_image_png(size: int = 300):
+    async with aiohttp.ClientSession() as session:
+        async with session.get(PGN_URL) as response:
+            pgn = await response.text()
+
+    new_image = pgn_to_pil_image(pgn).resize((size, size))
+    resized_buf = BytesIO()
+    new_image.save(resized_buf, "png")
+    resized_buf.seek(0)
+
+    return Response(content=resized_buf.read(), status_code=200,
+                    media_type="image/png")
+
+
+@app.get("/image.jpg")
+async def route_image_jpg(size: int = 300):
+    async with aiohttp.ClientSession() as session:
+        async with session.get(PGN_URL) as response:
+            pgn = await response.text()
+
+    new_image = pgn_to_pil_image(pgn).convert("RGB").resize((size, size))
+    resized_buf = BytesIO()
+    new_image.save(resized_buf, "jpeg")
+    resized_buf.seek(0)
+
+    return Response(content=resized_buf.read(), status_code=200,
+                    media_type="image/jpg")
 
 
 if __name__ == "__main__":
