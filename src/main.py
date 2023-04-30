@@ -15,7 +15,7 @@ from PIL import Image
 JSON_URL = "https://tcec-chess.com/live.json"
 PGN_URL = "https://tcec-chess.com/live.pgn"
 TIMEZONE = "America/New_York"
-
+PONDER_ARROW_COLOR = "#DDDDDDCC"
 
 app = FastAPI()
 
@@ -122,14 +122,37 @@ async def route_moves_pgn():
     return game.accept(exporter)
 
 
-def pgn_to_pil_image(pgn: str) -> Image:
+async def get_board_image() -> Image:
+    async with aiohttp.ClientSession() as session:
+        async with session.get(PGN_URL) as response:
+            pgn = await response.text()
+        async with session.get(JSON_URL) as response:
+            metadata = await response.json()
+
+    moves = metadata["Moves"]
+    arrows = []
+    if len(moves) > 0 and "pv" in moves[-1] and \
+            len(moves[-1]["pv"]["Moves"]) > 1:
+        next_move = moves[-1]["pv"]["Moves"][1]
+        arrows.append(
+            chess.svg.Arrow(
+                chess.parse_square(next_move["from"]),
+                chess.parse_square(next_move["to"]),
+                color=PONDER_ARROW_COLOR
+            )
+        )
+
     game = chess.pgn.read_game(StringIO(pgn))
     board = game.board()
+    last_move = None
     for move in game.mainline_moves():
         board.push(move)
+        last_move = move
 
     svg_buf = BytesIO()
-    svg_buf.write(chess.svg.board(board).encode("utf-8"))
+    svg_buf.write(chess.svg.board(board,
+                                  lastmove=last_move,
+                                  arrows=arrows).encode("utf-8"))
     svg_buf.seek(0)
     drawing = svg2rlg(svg_buf)
     pdf = renderPDF.drawToString(drawing)
@@ -143,11 +166,7 @@ def pgn_to_pil_image(pgn: str) -> Image:
 
 @app.get("/image.png")
 async def route_image_png(size: int = 300):
-    async with aiohttp.ClientSession() as session:
-        async with session.get(PGN_URL) as response:
-            pgn = await response.text()
-
-    new_image = pgn_to_pil_image(pgn).resize((size, size))
+    new_image = (await get_board_image()).resize((size, size))
     resized_buf = BytesIO()
     new_image.save(resized_buf, "png")
     resized_buf.seek(0)
@@ -158,11 +177,9 @@ async def route_image_png(size: int = 300):
 
 @app.get("/image.jpg")
 async def route_image_jpg(size: int = 300):
-    async with aiohttp.ClientSession() as session:
-        async with session.get(PGN_URL) as response:
-            pgn = await response.text()
-
-    new_image = pgn_to_pil_image(pgn).convert("RGB").resize((size, size))
+    new_image = (await get_board_image()).\
+        convert("RGB").\
+        resize((size, size))
     resized_buf = BytesIO()
     new_image.save(resized_buf, "jpeg")
     resized_buf.seek(0)
