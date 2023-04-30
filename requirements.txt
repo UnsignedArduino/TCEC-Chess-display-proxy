@@ -4,5 +4,4 @@ aiohttp
 aiodns
 arrow
 chess
-selenium
-webdriver-manager
+si-prefix
