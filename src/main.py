@@ -20,8 +20,8 @@ TIMEZONE = "America/New_York"
 app = FastAPI()
 
 
-@app.get("/metadata")
-async def route_metadata():
+@app.get("/metadata.json")
+async def route_metadata_json():
     async with aiohttp.ClientSession() as session:
         async with session.get(JSON_URL) as response:
             metadata = await response.json()
@@ -87,7 +87,7 @@ async def route_metadata():
             ).format("m:ss"),
             "remaining_time": arrow.get(
                 int(last_white_move["tl"]) / 1000
-            ).format("m:ss")
+            ).format("H:mm:ss")
         }
 
     if last_black_move is not None:
@@ -101,14 +101,14 @@ async def route_metadata():
             ).format("m:ss"),
             "remaining_time": arrow.get(
                 int(last_black_move["tl"]) / 1000
-            ).format("m:ss")
+            ).format("H:mm:ss")
         }
 
     return wanted
 
 
-@app.get("/moves", response_class=PlainTextResponse)
-async def route_moves():
+@app.get("/moves.pgn", response_class=PlainTextResponse)
+async def route_moves_pgn():
     async with aiohttp.ClientSession() as session:
         async with session.get(PGN_URL) as response:
             pgn = await response.text()

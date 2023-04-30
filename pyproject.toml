@@ -1,0 +1,24 @@
+[tool.poetry]
+name = "repl_nix_TCEC-Chess-display-proxy"
+version = "0.1.0"
+description = ""
+authors = ["Replit user <<>>"]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+python-chess = "^1.999"
+si-prefix = "^1.2.2"
+uvicorn = "^0.22.0"
+aiohttp = "^3.8.4"
+arrow = "^1.2.3"
+fastapi = "^0.95.1"
+fitz = "^0.0.1-alpha.2"
+Pillow = "^9.5.0"
+reportlab = "^3.6.13"
+svglib = "^1.5.1"
+
+[tool.poetry.dev-dependencies]
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
