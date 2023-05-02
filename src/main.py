@@ -17,7 +17,6 @@ from PIL import Image
 JSON_URL = "https://tcec-chess.com/live.json"
 PGN_URL = "https://tcec-chess.com/live.pgn"
 TIMEZONE = "America/New_York"
-PONDER_ARROW_COLOR = "#DDDDDDCC"
 
 app = FastAPI()
 
@@ -152,14 +151,18 @@ async def get_board_image(size: int) -> Image:
                 chess.svg.Arrow(
                     move.from_square,
                     move.to_square,
-                    color=PONDER_ARROW_COLOR
+                    color="#DDDDDDCC"
                 )
             )
 
     svg_buf = BytesIO()
     svg_buf.write(chess.svg.board(board,
                                   lastmove=last_move,
-                                  arrows=arrows).encode("utf-8"))
+                                  arrows=arrows,
+                                  colors={
+                                      "square light lastmove": "#A5A5A5",
+                                      "square dark lastmove": "#656565",
+                                  }).encode("utf-8"))
     svg_buf.seek(0)
     drawing = svg2rlg(svg_buf)
     pdf = renderPDF.drawToString(drawing)
@@ -169,7 +172,7 @@ async def get_board_image(size: int) -> Image:
     png_bytes.write(pix.tobytes(output="png"))
     png_bytes.seek(0)
 
-    return Image.open(png_bytes).resize((size, size))
+    return Image.open(png_bytes).resize((size, size)).convert("L")
 
 
 @app.get("/image.png")
