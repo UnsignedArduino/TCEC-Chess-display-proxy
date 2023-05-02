@@ -164,7 +164,7 @@ async def get_board_image() -> Image:
     png_bytes = BytesIO()
     png_bytes.write(pix.tobytes(output="png"))
     png_bytes.seek(0)
-    return Image.open(png_bytes)
+    return Image.open(png_bytes).convert("1")
 
 
 @app.get("/image.png")
