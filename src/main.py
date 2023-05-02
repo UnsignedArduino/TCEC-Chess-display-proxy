@@ -1,5 +1,3 @@
-import math
-
 import uvicorn
 from fastapi import FastAPI
 from fastapi.responses import Response, PlainTextResponse
@@ -151,7 +149,7 @@ async def get_board_image(size: int) -> Image:
                 chess.svg.Arrow(
                     move.from_square,
                     move.to_square,
-                    color="#DDDDDDCC"
+                    color="#EEEEEEFF"
                 )
             )
 
@@ -160,7 +158,7 @@ async def get_board_image(size: int) -> Image:
                                   lastmove=last_move,
                                   arrows=arrows,
                                   colors={
-                                      "square light lastmove": "#A5A5A5",
+                                      "square light lastmove": "#878787",
                                       "square dark lastmove": "#656565",
                                   }).encode("utf-8"))
     svg_buf.seek(0)
