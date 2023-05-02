@@ -1,3 +1,5 @@
+import math
+
 import uvicorn
 from fastapi import FastAPI
 from fastapi.responses import Response, PlainTextResponse
@@ -58,13 +60,15 @@ async def route_metadata_json():
             "name": headers["White"].split(" ")[0],
             "version": headers["White"].split(" ")[1],
             "elo": headers["WhiteElo"],
-            "book": last_white_move["book"] if last_white_move is not None else None
+            "book": last_white_move[
+                "book"] if last_white_move is not None else None
         },
         "black": {
             "name": headers["Black"].split(" ")[0],
             "version": headers["Black"].split(" ")[1],
             "elo": headers["BlackElo"],
-            "book": last_black_move["book"] if last_black_move is not None else None
+            "book": last_black_move[
+                "book"] if last_black_move is not None else None
         },
         "game": {
             "start_absolute": start_time.format("HH:mm:ss MM/DD/YYYY"),
@@ -122,7 +126,7 @@ async def route_moves_pgn():
     return game.accept(exporter)
 
 
-async def get_board_image() -> Image:
+async def get_board_image(size: int) -> Image:
     async with aiohttp.ClientSession() as session:
         async with session.get(PGN_URL) as response:
             pgn = await response.text()
@@ -164,12 +168,66 @@ async def get_board_image() -> Image:
     png_bytes = BytesIO()
     png_bytes.write(pix.tobytes(output="png"))
     png_bytes.seek(0)
-    return Image.open(png_bytes).convert("1")
+
+    im = Image.open(png_bytes)
+    im = im.resize((size, size))
+    mode, size = im.mode, im.size
+
+    # https://github.com/CarpenterD/python-dithering/blob/master/dither.py
+    def getClosestColor(c, colors):
+        nearest = (0, 0, 0)
+        minDiff = 1000
+        for col in colors:
+            diff = math.sqrt((col[0] - c[0]) ** 2 + (col[1] - c[1]) ** 2 + (
+                    col[2] - c[2]) ** 2)
+            if diff < minDiff:
+                minDiff = diff
+                nearest = col
+        return nearest
+
+    def clamp(x):
+        return max(0, min(255, x))
+
+    def applyErr(tup, err, factor):
+        r = clamp(int(tup[0] + err[0] * factor))
+        g = clamp(int(tup[1] + err[1] * factor))
+        b = clamp(int(tup[2] + err[2] * factor))
+        return r, g, b
+
+    colors = ((0, 0, 0), (255, 255, 255))
+
+    pix = list(im.getdata())
+
+    index = lambda x, y: x + y * im.width
+    for y in range(int(im.height)):
+        for x in range(int(im.width)):
+            old = pix[index(x, y)]
+            new = getClosestColor(old, colors)
+            pix[index(x, y)] = new
+            err = (old[0] - new[0], old[1] - new[1], old[2] - new[2])
+
+            if x != im.width - 1:
+                pix[index(x + 1, y)] = applyErr(pix[index(x + 1, y)], err,
+                                                7 / 16)
+            if y != im.height - 1:
+                pix[index(x, y + 1)] = applyErr(pix[index(x, y + 1)], err,
+                                                5 / 16)
+                if x > 0:
+                    pix[index(x - 1, y + 1)] = applyErr(
+                        pix[index(x - 1, y + 1)], err, 3 / 16)
+                if x != im.width - 1:
+                    pix[index(x + 1, y + 1)] = applyErr(
+                        pix[index(x + 1, y + 1)], err, 1 / 16)
+
+    new_im = Image.new(mode, size)
+    new_im.putdata(pix)
+
+    return new_im
 
 
 @app.get("/image.png")
 async def route_image_png(size: int = 300):
-    new_image = (await get_board_image()).resize((size, size))
+    new_image = await get_board_image(size)
     resized_buf = BytesIO()
     new_image.save(resized_buf, "png")
     resized_buf.seek(0)
@@ -180,9 +238,7 @@ async def route_image_png(size: int = 300):
 
 @app.get("/image.jpg")
 async def route_image_jpg(size: int = 300):
-    new_image = (await get_board_image()).\
-        convert("RGB").\
-        resize((size, size))
+    new_image = (await get_board_image(size)).convert("RGB")
     resized_buf = BytesIO()
     new_image.save(resized_buf, "jpeg")
     resized_buf.seek(0)
