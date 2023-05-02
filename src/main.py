@@ -1,3 +1,5 @@
+import math
+
 import uvicorn
 from fastapi import FastAPI
 from fastapi.responses import Response, PlainTextResponse
@@ -58,13 +60,15 @@ async def route_metadata_json():
             "name": headers["White"].split(" ")[0],
             "version": headers["White"].split(" ")[1],
             "elo": headers["WhiteElo"],
-            "book": last_white_move["book"] if last_white_move is not None else None
+            "book": last_white_move[
+                "book"] if last_white_move is not None else None
         },
         "black": {
             "name": headers["Black"].split(" ")[0],
             "version": headers["Black"].split(" ")[1],
             "elo": headers["BlackElo"],
-            "book": last_black_move["book"] if last_black_move is not None else None
+            "book": last_black_move[
+                "book"] if last_black_move is not None else None
         },
         "game": {
             "start_absolute": start_time.format("HH:mm:ss MM/DD/YYYY"),
@@ -122,7 +126,7 @@ async def route_moves_pgn():
     return game.accept(exporter)
 
 
-async def get_board_image() -> Image:
+async def get_board_image(size: int) -> Image:
     async with aiohttp.ClientSession() as session:
         async with session.get(PGN_URL) as response:
             pgn = await response.text()
@@ -164,12 +168,13 @@ async def get_board_image() -> Image:
     png_bytes = BytesIO()
     png_bytes.write(pix.tobytes(output="png"))
     png_bytes.seek(0)
-    return Image.open(png_bytes)
+
+    return Image.open(png_bytes).resize((size, size))
 
 
 @app.get("/image.png")
 async def route_image_png(size: int = 300):
-    new_image = (await get_board_image()).resize((size, size))
+    new_image = await get_board_image(size)
     resized_buf = BytesIO()
     new_image.save(resized_buf, "png")
     resized_buf.seek(0)
@@ -180,9 +185,7 @@ async def route_image_png(size: int = 300):
 
 @app.get("/image.jpg")
 async def route_image_jpg(size: int = 300):
-    new_image = (await get_board_image()).\
-        convert("RGB").\
-        resize((size, size))
+    new_image = (await get_board_image(size)).convert("RGB")
     resized_buf = BytesIO()
     new_image.save(resized_buf, "jpeg")
     resized_buf.seek(0)
