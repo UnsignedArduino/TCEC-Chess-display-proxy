@@ -170,14 +170,14 @@ async def get_board_image(size: int) -> Image:
     png_bytes.write(pix.tobytes(output="png"))
     png_bytes.seek(0)
 
-    return Image.open(png_bytes).resize((size, size)).convert("L")
+    return Image.open(png_bytes).resize((size, size)).convert("1")
 
 
 @app.get("/image.png")
 async def route_image_png(size: int = 300):
     new_image = await get_board_image(size)
     resized_buf = BytesIO()
-    new_image.save(resized_buf, "png")
+    new_image.save(resized_buf, "png", optimize=True)
     resized_buf.seek(0)
 
     return Response(content=resized_buf.read(), status_code=200,
@@ -188,7 +188,7 @@ async def route_image_png(size: int = 300):
 async def route_image_jpg(size: int = 300):
     new_image = (await get_board_image(size)).convert("RGB")
     resized_buf = BytesIO()
-    new_image.save(resized_buf, "jpeg")
+    new_image.save(resized_buf, "jpeg", optimize=True, quality=25)
     resized_buf.seek(0)
 
     return Response(content=resized_buf.read(), status_code=200,
