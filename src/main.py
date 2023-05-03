@@ -149,7 +149,7 @@ async def get_board_image(size: int) -> Image:
                 chess.svg.Arrow(
                     move.from_square,
                     move.to_square,
-                    color="#EEEEEEFF"
+                    color="#FFFFFFFF"
                 )
             )
 
@@ -158,8 +158,11 @@ async def get_board_image(size: int) -> Image:
                                   lastmove=last_move,
                                   arrows=arrows,
                                   colors={
-                                      "square light lastmove": "#878787",
-                                      "square dark lastmove": "#656565",
+                                      "square light": "#FFFFFF",
+                                      "square dark": "#696969",
+                                      "margin": "#000000",
+                                      "square light lastmove": "#404040",
+                                      "square dark lastmove": "#343434",
                                   }).encode("utf-8"))
     svg_buf.seek(0)
     drawing = svg2rlg(svg_buf)
