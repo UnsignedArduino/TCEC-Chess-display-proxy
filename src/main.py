@@ -159,10 +159,10 @@ async def get_board_image(size: int) -> Image:
                                   arrows=arrows,
                                   colors={
                                       "square light": "#FFFFFF",
-                                      "square dark": "#696969",
+                                      "square dark": "#828282",
                                       "margin": "#000000",
-                                      "square light lastmove": "#404040",
-                                      "square dark lastmove": "#343434",
+                                      "square light lastmove": "#484848",
+                                      "square dark lastmove": "#383838",
                                   }).encode("utf-8"))
     svg_buf.seek(0)
     drawing = svg2rlg(svg_buf)
